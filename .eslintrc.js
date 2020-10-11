@@ -23,9 +23,12 @@ module.exports = {
     'arrow-parens': 0,
     // 操作符位于行首
     'operator-linebreak': 0,
+    'dot-notation': 0,
     // 检查html是否不允许闭合
     'vue/html-self-closing': 0,
-    semi: [2, 'never'],
+    'vue/singleline-html-element-content-newline': 0,
+    // semi: [2, 'never'],
+    semi: 0,
     'no-unused-expressions': 0,
     'no-plusplus': 0,
     'import/prefer-default-export': 0,
@@ -52,4 +55,4 @@ module.exports = {
   globals: {
     location: false,
   },
-}
+};

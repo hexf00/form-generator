@@ -114,38 +114,40 @@
       :show-file-name="showFileName"
       @confirm="generate"
     />
+    <ImportDialogVue :visible.sync="showImportDialog"></ImportDialogVue>
     <input id="copyNode" type="hidden" />
   </div>
 </template>
 
 <script>
-import draggable from 'vuedraggable'
-import { debounce } from 'throttle-debounce'
-import { saveAs } from 'file-saver'
-import ClipboardJS from 'clipboard'
-import render from '@/components/render/render'
-import FormDrawer from './FormDrawer'
-import JsonDrawer from './JsonDrawer'
-import RightPanel from './RightPanel'
-import { inputComponents, selectComponents, layoutComponents, formConf } from '@/components/generator/config'
-import { exportDefault, beautifierConf, isNumberStr, titleCase, deepClone } from '@/utils/index'
-import { makeUpHtml, vueTemplate, vueScript, cssStyle } from '@/components/generator/html'
-import { makeUpJs } from '@/components/generator/js'
-import { makeUpCss } from '@/components/generator/css'
-import drawingDefalut from '@/components/generator/drawingDefalut'
-import logo from '@/assets/logo.png'
-import CodeTypeDialog from './CodeTypeDialog'
-import DraggableItem from './DraggableItem'
-import { getDrawingList, saveDrawingList, getIdGlobal, saveIdGlobal, getFormConf } from '@/utils/db'
-import loadBeautifier from '@/utils/loadBeautifier'
+import draggable from 'vuedraggable';
+import { debounce } from 'throttle-debounce';
+import { saveAs } from 'file-saver';
+import ClipboardJS from 'clipboard';
+import render from '@/components/render/render';
+import FormDrawer from './FormDrawer';
+import JsonDrawer from './JsonDrawer';
+import RightPanel from './RightPanel';
+import { inputComponents, selectComponents, layoutComponents, formConf } from '@/components/generator/config';
+import { exportDefault, beautifierConf, isNumberStr, titleCase, deepClone } from '@/utils/index';
+import { makeUpHtml, vueTemplate, vueScript, cssStyle } from '@/components/generator/html';
+import { makeUpJs } from '@/components/generator/js';
+import { makeUpCss } from '@/components/generator/css';
+import drawingDefalut from '@/components/generator/drawingDefalut';
+import logo from '@/assets/logo.png';
+import CodeTypeDialog from './CodeTypeDialog';
+import DraggableItem from './DraggableItem';
+import { getDrawingList, saveDrawingList, getIdGlobal, saveIdGlobal, getFormConf } from '@/utils/db';
+import loadBeautifier from '@/utils/loadBeautifier';
+import ImportDialogVue from './ImportDialog.vue';
 
-let beautifier
-const emptyActiveData = { style: {}, autosize: {} }
-let oldActiveId
-let tempActiveData
-const drawingListInDB = getDrawingList()
-const formConfInDB = getFormConf()
-const idGlobal = getIdGlobal()
+let beautifier;
+const emptyActiveData = { style: {}, autosize: {} };
+let oldActiveId;
+let tempActiveData;
+const drawingListInDB = getDrawingList();
+const formConfInDB = getFormConf();
+const idGlobal = getIdGlobal();
 
 export default {
   components: {
@@ -156,6 +158,7 @@ export default {
     RightPanel,
     CodeTypeDialog,
     DraggableItem,
+    ImportDialogVue,
   },
   data() {
     return {
@@ -172,6 +175,7 @@ export default {
       drawerVisible: false,
       formData: {},
       dialogVisible: false,
+      showImportDialog: false,
       jsonDrawerVisible: false,
       generateConf: null,
       showFileName: false,
@@ -192,7 +196,7 @@ export default {
           list: layoutComponents,
         },
       ],
-    }
+    };
   },
   computed: {},
   watch: {
@@ -203,236 +207,238 @@ export default {
         !this.activeData.__config__.tag ||
         oldActiveId !== this.activeId
       ) {
-        return
+        return;
       }
-      this.activeData.placeholder = this.activeData.placeholder.replace(oldVal, '') + val
+      this.activeData.placeholder = this.activeData.placeholder.replace(oldVal, '') + val;
     },
     activeId: {
       handler(val) {
-        oldActiveId = val
+        oldActiveId = val;
       },
       immediate: true,
     },
     drawingList: {
       handler(val) {
-        this.saveDrawingListDebounce(val)
-        if (val.length === 0) this.idGlobal = 100
+        this.saveDrawingListDebounce(val);
+        if (val.length === 0) this.idGlobal = 100;
       },
       deep: true,
     },
     idGlobal: {
       handler(val) {
-        this.saveIdGlobalDebounce(val)
+        this.saveIdGlobalDebounce(val);
       },
       immediate: true,
     },
   },
   mounted() {
     if (Array.isArray(drawingListInDB) && drawingListInDB.length > 0) {
-      this.drawingList = drawingListInDB
+      this.drawingList = drawingListInDB;
     } else {
-      this.drawingList = drawingDefalut
+      this.drawingList = drawingDefalut;
     }
-    this.activeFormItem(this.drawingList[0])
+    this.activeFormItem(this.drawingList[0]);
     if (formConfInDB) {
-      this.formConf = formConfInDB
+      this.formConf = formConfInDB;
     }
     loadBeautifier((btf) => {
-      beautifier = btf
-    })
+      beautifier = btf;
+    });
     const clipboard = new ClipboardJS('#copyNode', {
       text: (trigger) => {
-        const codeStr = this.generateCode()
+        const codeStr = this.generateCode();
         this.$notify({
           title: '成功',
           message: '代码已复制到剪切板，可粘贴。',
           type: 'success',
-        })
-        return codeStr
+        });
+        return codeStr;
       },
-    })
+    });
     clipboard.on('error', (e) => {
-      this.$message.error('代码复制失败')
-    })
+      this.$message.error('代码复制失败');
+    });
   },
   methods: {
     fetchData(component) {
-      const { dataType, method, url, dataKey, renderKey } = component.__config__
+      const { dataType, method, url, dataKey, renderKey } = component.__config__;
       if (dataType === 'dynamic' && method && url) {
-        this.setLoading(component, true)
+        this.setLoading(component, true);
         this.$axios({
           method,
           url,
         }).then((resp) => {
-          this.setLoading(component, false)
+          this.setLoading(component, false);
           if (dataKey) {
-            component.data = dataKey.split('.').reduce((pre, item) => pre[item], resp.data)
+            component.data = dataKey.split('.').reduce((pre, item) => pre[item], resp.data);
           } else {
-            component.data = resp.data
+            component.data = resp.data;
           }
-          const i = this.drawingList.findIndex((item) => item.__config__.renderKey === renderKey)
-          if (i > -1) this.$set(this.drawingList, i, component)
-        })
+          const i = this.drawingList.findIndex((item) => item.__config__.renderKey === renderKey);
+          if (i > -1) this.$set(this.drawingList, i, component);
+        });
       }
     },
     setLoading(component, val) {
-      const { directives } = component
+      const { directives } = component;
       if (Array.isArray(directives)) {
-        const t = directives.find((d) => d.name === 'loading')
-        if (t) t.value = val
+        const t = directives.find((d) => d.name === 'loading');
+        if (t) t.value = val;
       }
     },
     activeFormItem(currentItem) {
-      this.activeData = currentItem
-      this.activeId = currentItem.__config__.formId
+      this.activeData = currentItem;
+      this.activeId = currentItem.__config__.formId;
     },
     onEnd(obj) {
       if (obj.from !== obj.to) {
-        this.fetchData(tempActiveData)
-        this.activeData = tempActiveData
-        this.activeId = this.idGlobal
+        this.fetchData(tempActiveData);
+        this.activeData = tempActiveData;
+        this.activeId = this.idGlobal;
       }
     },
     addComponent(item) {
-      const clone = this.cloneComponent(item)
-      this.fetchData(clone)
-      this.drawingList.push(clone)
-      this.activeFormItem(clone)
+      const clone = this.cloneComponent(item);
+      this.fetchData(clone);
+      this.drawingList.push(clone);
+      this.activeFormItem(clone);
     },
     cloneComponent(origin) {
-      const clone = deepClone(origin)
-      const config = clone.__config__
-      config.span = this.formConf.span // 生成代码时，会根据span做精简判断
-      this.createIdAndKey(clone)
-      clone.placeholder !== undefined && (clone.placeholder += config.label)
-      tempActiveData = clone
-      return tempActiveData
+      const clone = deepClone(origin);
+      const config = clone.__config__;
+      config.span = this.formConf.span; // 生成代码时，会根据span做精简判断
+      this.createIdAndKey(clone);
+      clone.placeholder !== undefined && (clone.placeholder += config.label);
+      tempActiveData = clone;
+      return tempActiveData;
     },
     createIdAndKey(item) {
-      const config = item.__config__
-      config.formId = ++this.idGlobal
-      config.renderKey = `${config.formId}${+new Date()}` // 改变renderKey后可以实现强制更新组件
+      const config = item.__config__;
+      config.formId = ++this.idGlobal;
+      config.renderKey = `${config.formId}${+new Date()}`; // 改变renderKey后可以实现强制更新组件
       if (config.layout === 'colFormItem') {
-        item.__vModel__ = `field${this.idGlobal}`
+        item.__vModel__ = `field${this.idGlobal}`;
       } else if (config.layout === 'rowFormItem') {
-        config.componentName = `row${this.idGlobal}`
-        !Array.isArray(config.children) && (config.children = [])
-        delete config.label // rowFormItem无需配置label属性
+        config.componentName = `row${this.idGlobal}`;
+        !Array.isArray(config.children) && (config.children = []);
+        delete config.label; // rowFormItem无需配置label属性
       }
       if (Array.isArray(config.children)) {
-        config.children = config.children.map((childItem) => this.createIdAndKey(childItem))
+        config.children = config.children.map((childItem) => this.createIdAndKey(childItem));
       }
-      return item
+      return item;
     },
     AssembleFormData() {
       this.formData = {
         fields: deepClone(this.drawingList),
         ...this.formConf,
-      }
+      };
     },
     generate(data) {
-      const func = this[`exec${titleCase(this.operationType)}`]
-      this.generateConf = data
-      func && func(data)
+      const func = this[`exec${titleCase(this.operationType)}`];
+      this.generateConf = data;
+      func && func(data);
     },
     execRun(data) {
-      this.AssembleFormData()
-      this.drawerVisible = true
+      this.AssembleFormData();
+      this.drawerVisible = true;
     },
     execDownload(data) {
-      const codeStr = this.generateCode()
-      const blob = new Blob([codeStr], { type: 'text/plain;charset=utf-8' })
-      saveAs(blob, data.fileName)
+      const codeStr = this.generateCode();
+      const blob = new Blob([codeStr], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, data.fileName);
     },
     execCopy(data) {
-      document.getElementById('copyNode').click()
+      document.getElementById('copyNode').click();
     },
     empty() {
       this.$confirm('确定要清空所有组件吗？', '提示', { type: 'warning' }).then(() => {
-        this.drawingList = []
-        this.idGlobal = 100
-      })
+        this.drawingList = [];
+        this.idGlobal = 100;
+      });
     },
     drawingItemCopy(item, list) {
-      let clone = deepClone(item)
-      clone = this.createIdAndKey(clone)
-      list.push(clone)
-      this.activeFormItem(clone)
+      let clone = deepClone(item);
+      clone = this.createIdAndKey(clone);
+      list.push(clone);
+      this.activeFormItem(clone);
     },
     drawingItemDelete(index, list) {
-      list.splice(index, 1)
+      list.splice(index, 1);
       this.$nextTick(() => {
-        const len = this.drawingList.length
+        const len = this.drawingList.length;
         if (len) {
-          this.activeFormItem(this.drawingList[len - 1])
+          this.activeFormItem(this.drawingList[len - 1]);
         }
-      })
+      });
     },
     generateCode() {
-      const { type } = this.generateConf
-      this.AssembleFormData()
-      const script = vueScript(makeUpJs(this.formData, type))
-      const html = vueTemplate(makeUpHtml(this.formData, type))
-      const css = cssStyle(makeUpCss(this.formData))
-      return beautifier.html(html + script + css, beautifierConf.html)
+      const { type } = this.generateConf;
+      this.AssembleFormData();
+      const script = vueScript(makeUpJs(this.formData, type));
+      const html = vueTemplate(makeUpHtml(this.formData, type));
+      const css = cssStyle(makeUpCss(this.formData));
+      return beautifier.html(html + script + css, beautifierConf.html);
     },
     showJson() {
-      this.AssembleFormData()
-      this.jsonDrawerVisible = true
+      this.AssembleFormData();
+      this.jsonDrawerVisible = true;
     },
-    importJson() {},
+    importJson() {
+      this.showImportDialog = true;
+    },
     download() {
-      this.dialogVisible = true
-      this.showFileName = true
-      this.operationType = 'download'
+      this.dialogVisible = true;
+      this.showFileName = true;
+      this.operationType = 'download';
     },
     run() {
-      this.dialogVisible = true
-      this.showFileName = false
-      this.operationType = 'run'
+      this.dialogVisible = true;
+      this.showFileName = false;
+      this.operationType = 'run';
     },
     copy() {
-      this.dialogVisible = true
-      this.showFileName = false
-      this.operationType = 'copy'
+      this.dialogVisible = true;
+      this.showFileName = false;
+      this.operationType = 'copy';
     },
     tagChange(newTag) {
-      newTag = this.cloneComponent(newTag)
-      const config = newTag.__config__
-      newTag.__vModel__ = this.activeData.__vModel__
-      config.formId = this.activeId
-      config.span = this.activeData.__config__.span
-      this.activeData.__config__.tag = config.tag
-      this.activeData.__config__.tagIcon = config.tagIcon
-      this.activeData.__config__.document = config.document
+      newTag = this.cloneComponent(newTag);
+      const config = newTag.__config__;
+      newTag.__vModel__ = this.activeData.__vModel__;
+      config.formId = this.activeId;
+      config.span = this.activeData.__config__.span;
+      this.activeData.__config__.tag = config.tag;
+      this.activeData.__config__.tagIcon = config.tagIcon;
+      this.activeData.__config__.document = config.document;
       if (typeof this.activeData.__config__.defaultValue === typeof config.defaultValue) {
-        config.defaultValue = this.activeData.__config__.defaultValue
+        config.defaultValue = this.activeData.__config__.defaultValue;
       }
       Object.keys(newTag).forEach((key) => {
         if (this.activeData[key] !== undefined) {
-          newTag[key] = this.activeData[key]
+          newTag[key] = this.activeData[key];
         }
-      })
-      this.activeData = newTag
-      this.updateDrawingList(newTag, this.drawingList)
+      });
+      this.activeData = newTag;
+      this.updateDrawingList(newTag, this.drawingList);
     },
     updateDrawingList(newTag, list) {
-      const index = list.findIndex((item) => item.__config__.formId === this.activeId)
+      const index = list.findIndex((item) => item.__config__.formId === this.activeId);
       if (index > -1) {
-        list.splice(index, 1, newTag)
+        list.splice(index, 1, newTag);
       } else {
         list.forEach((item) => {
-          if (Array.isArray(item.__config__.children)) this.updateDrawingList(newTag, item.__config__.children)
-        })
+          if (Array.isArray(item.__config__.children)) this.updateDrawingList(newTag, item.__config__.children);
+        });
       }
     },
     refreshJson(data) {
-      this.drawingList = deepClone(data.fields)
-      delete data.fields
-      this.formConf = data
+      this.drawingList = deepClone(data.fields);
+      delete data.fields;
+      this.formConf = data;
     },
   },
-}
+};
 </script>
 
 <style lang="scss">
