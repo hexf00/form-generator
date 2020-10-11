@@ -68,7 +68,7 @@ export default {
           value: 'file',
         },
       ],
-    }
+    };
   },
   computed: {},
   watch: {},
@@ -77,19 +77,19 @@ export default {
   methods: {
     onOpen() {},
     onClose() {
-      this.$refs['elForm'].resetFields()
+      this.$refs['elForm'].resetFields();
     },
     close() {
-      this.$emit('update:visible', false)
+      this.$emit('update:visible', false);
     },
     handelConfirm() {
       this.$refs['elForm'].validate((valid) => {
-        if (!valid) return
-        this.close()
-      })
+        if (!valid) return;
+        this.close();
+      });
     },
   },
-}
+};
 </script>
 <style>
 .el-upload__tip {
